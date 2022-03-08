@@ -7,7 +7,7 @@ import play.api.libs.json.Format
 
 object MatrixPayload {
 
-  case class Matrix(firstArray: List[Int], secondArray: List[Int])
+  case class Matrix(firstArray: List[List[Int]])
 
   object Matrix {
     implicit lazy val jsonFormatMatrix: Format[Matrix] = Jsonx.formatCaseClass[Matrix]

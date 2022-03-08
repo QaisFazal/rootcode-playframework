@@ -2,10 +2,12 @@ package controllers
 
 import application.MatrixCalculatorApplication
 import payloads.MatrixPayload.Matrix
+import payloads.MatrixResponse.MatrixResponse
 import play.api.mvc._
 import play.api.libs.json._
 
 import javax.inject._
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -25,14 +27,18 @@ class HomeController @Inject()(val controllerComponents: ControllerComponents,ma
    */
   def calculate(): Action[JsValue] = Action(parse.json) { implicit request =>
     request.body.validate[Matrix].fold(
-      _ => BadRequest(Json.obj("message" -> "Unable to parse the JSON to Matrix")),{
-        case c: Matrix =>
-          val firstArrayResult: Int = matrixCalculatorApplication.process(c.firstArray)
-          val secondArrayResult: Int = matrixCalculatorApplication.process(c.secondArray)
+      _ => BadRequest(Json.obj("message" -> "Unable to parse the JSON from Matrix")),{
+        case c: Matrix if c.firstArray.length == 4 =>
+          val sumOfIndividualRows = ListBuffer.empty[Int] //Append and prepend operations are constant time
 
-          Ok(Json.obj("firstArrayTotal" -> firstArrayResult,"secondArrayTotal" -> secondArrayResult))
+          try{
+            for (item <- c.firstArray) yield sumOfIndividualRows += matrixCalculatorApplication.process(item)
+            Ok(Json.toJson(MatrixResponse(sumOfIndividualRows.result())))
+          } catch {
+            case e: Exception => BadRequest(Json.obj("errorMessage" -> e.getMessage))
+          }
         case _ =>
-          BadRequest(Json.obj("message" -> "Invalid payload"))
+          BadRequest(Json.obj("message" -> "4x4 Matrix contains only 3 rows"))
 
       }
     )
